@@ -502,14 +502,14 @@ El receptor no muestra señales de recibir el mensaje, tampoco se muestra en wir
     \begin{figure}[htbp]
         \centering
         \includegraphics[width=1\linewidth]{imgs/check9-1.png}
-        \caption{}
+        \caption{Ejecución del envío de datagramas UDP desde los equipos atacantes durante 15 segundos.}
         \label{fig:chk9-1}
     \end{figure}
     \item Victima:  Fig.~\ref{fig:chk9-2}.
     \begin{figure}[htbp]
         \centering
         \includegraphics[width=1\linewidth]{imgs/check9-2.png}
-        \caption{}
+        \caption{Uso de la red Wi-Fi en el equipo víctima durante el envío masivo de datagramas UDP.}
         \label{fig:chk9-2}
     \end{figure}
 \end{itemize}
@@ -537,11 +537,11 @@ Sí se puede identificar el patrón anormal por la gran cantidad de paquetes UDP
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=1\linewidth]{imgs/check9-3.png}
-    \caption{}
+    \caption{Gráfica de E/S de Wireshark en el equipo víctima, con un aumento de paquetes por segundo durante el ataque.}
     \label{fig:chk9-3}
 \end{figure}
 
 
 \item \textbf{Research what a "UDP Amplification Attack" is (e.g., DNS or NTP amplification). Briefly explain how an attacker uses a small UDP request to trick a third-party server into sending a massive UDP response to the victim}
-
+Un ataque de amplificación UDP combina suplantación de IP y un servidor de terceros que responde con más datos de los que recibe. El atacante envía una solicitud pequeña a un servidor DNS o NTP, pero coloca la dirección de la víctima como IP de origen. El servidor envía entonces su respuesta, más grande, a la víctima. Si el atacante repite el proceso con muchos servidores, las respuestas pueden generar un volumen de tráfico mucho mayor que el enviado inicialmente \cite{krupp2022ampfuzz}.
 \end{enumerate}
