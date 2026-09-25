@@ -1,0 +1,30 @@
+\section*{Conclusion}
+
+CONCLUSIONES
+\subsection{Primera experiencia}
+En primer lugar, se capturó el tráfico UDP general del navegador y se identificaron los campos principales de cada paquete, lo que nos permitió observar el "unverified" en el checksum. Esto corresponde a la delegación del cálculo a la tarjeta de red: el hardware realiza la verificación antes de entregar el paquete a Wireshark, por lo que este no puede confirmar si es correcto. Asimismo, una de las diferencias entre TCP y UDP radica en las banderas ACK y PSH, propias del mecanismo de control de TCP y ausentes en UDP.
+\subsection{Segunda experiencia}
+En este caso, al usar nslookup para generar tráfico DNS sobre UDP, identificamos que el servidor DNS siempre responde por el puerto 53, mientras que el host usa un puerto temporal alto para cada consulta. Evidenciamos que las respuestas pesan más que las solicitudes por incluir registros adicionales(IP, CNAME). Concluimos que UDP es ideal para DNS porque su ausencia de handshake reduce la latencia en consultas breves y frecuentes..
+\subsection{Tercera experiencia}
+Al realizar envíos de datagramas UDP con Python, donde el header recibido coincidía  con el generado por el emisor confirmamos que no hay alteración de datos en el trayecto. Además, notamos que el envio de UDP no realiza handshake y al cambiar el tamaño del mensaje enviado concluimos que existe un límite práctico de tamaño (aprox. 1464 bytes).   
+
+\subsection{Quinta experiencia}
+Enviando un mensaje en broadcast notamos que los tres receptores lo capturaron simultáneamente con la misma MAC destino e IP de broadcast de la subred. Esta forma de transmisión es exclusiva de UDP, TCP no puede replicarla al requerir una conexión punto a punto con cada receptor, por lo que concluimos que esta capacidad es la razón por la que protocolos como DHCP y SSDP dependen del broadcast UDP para funcionar sin configuración manual previa.
+
+
+\subsection{Septima experiencia}
+Mediante NetCat notamos que no había tráfico previo al envío del mensaje, confirmando la ausencia de handshake en UDP. Esta simplicidad también se refleja en su header de menor tamaño (8 bytes), lo cual lo hace preferible para aplicaciones que priorizan la velocidad. Sin embargo, al enviar a un puerto cerrado se genera un ICMP "Port Unreachable", lo que evidencia que UDP sigue sin ser confiable, pues el sistema operativo no retransmite automáticamente el paquete perdido.
+
+% if have a single appendix:
+%\appendix[Proof of the Zonklar Equations]
+% or
+%\appendix  % for no appendix heading
+% do not use \section anymore after \appendix, only \section*
+% is possibly needed
+
+% use appendices with more than one appendix
+% then use \section to start each appendix
+% you must declare a \section before using any
+% \subsection or using \label (\appendices by itself
+% starts a section numbered zero.)
+%

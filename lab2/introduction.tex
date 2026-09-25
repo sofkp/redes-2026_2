@@ -1,0 +1,174 @@
+% The very first letter is a 2 line initial drop letter followed
+% by the rest of the first word in caps.
+% 
+% form to use if the first word consists of a single letter:
+% \IEEEPARstart{A}{demo} file is ....
+% 
+% form to use if you need the single drop letter followed by
+% normal text (unknown if ever used by the IEEE):
+% \IEEEPARstart{A}{}demo file is ....
+% 
+% Some journals put the first two words in caps:
+% \IEEEPARstart{T}{his demo} file is ....
+% 
+% Here we have the typical use of a "T" for an initial drop letter
+% and "HIS" in caps to complete the first word.
+\IEEEPARstart{U}{DP} es un protocolo de transporte que permite enviar mensajes independientes sin establecer previamente una conexión entre emisor y receptor \cite{kurose2021}. Su header reducido y la ausencia de confirmaciones propias del protocolo lo hacen útil para estudiar cómo se intercambian datagramas y qué ocurre cuando la aplicación debe gestionar pérdidas o errores. En este laboratorio se analizaron capturas de Wireshark correspondientes a tráfico UDP, consultas DNS y mensajes enviados mediante programas en Python y Netcat. También se realizaron pruebas de comunicación entre equipos, difusión en una red local y envío intensivo de datagramas. A partir de las capturas se examinan los campos de los paquetes, su recorrido y las diferencias observables frente a TCP. Finalmente, se relacionan los resultados con las limitaciones de UDP, en particular la ausencia de control de flujo y de confirmación de entrega.
+
+% You must have at least 2 lines in the paragraph with the drop letter
+% (should never be an issue)
+
+%\hfill mds
+
+%\hfill August 26, 2015
+
+\subsection{Theoretical Framework}
+% needed in second column of first page if using \IEEEpubid
+%\IEEEpubidadjcol
+
+\subsubsection{UDP}
+User Datagram Protocol (UDP) es un protocolo de transporte que envía
+datagramas independientes sin establecer previamente una conexión. Su encabezado contiene cuatro campos de 16 bits: puerto de origen, puerto de destino, longitud y checksum \cite{rfc768}. UDP no incorpora confirmaciones de entrega, retransmisiones ni control de flujo. Si una aplicación requiere recuperación o detección de desconexiones, debe programar mecanismos como confirmaciones, temporizadores o mensajes periódicos \cite{rfc768,kurose2021}. 
+
+\subsubsection{TCP}
+Transmission Control Protocol (TCP) es un protocolo de transporte orientado a conexión que proporciona una entrega confiable y ordenada de los datos \cite{kurose2021,rfc9293}. A diferencia de UDP, establece
+una conexión mediante un \textit{three-way handshake} y utiliza números
+de secuencia, confirmaciones ACK y retransmisiones para gestionar la
+entrega de los datos \cite{rfc9293}.
+
+\subsubsection{DNS}
+Domain Name System (DNS) es un sistema jerárquico y distribuido que traduce nombres de dominio en direcciones IP y almacena otros datos asociados a los servicios de red \cite{rfc1034}. Sus consultas y respuestas pueden transportarse mediante UDP usando el puerto 53 del servidor. DNS admite tanto TCP como UDP \cite{rfc1035}.
+
+\subsubsection{TCP Window Size and Flow Control}
+En TCP, el receptor anuncia cuánto espacio tiene disponible, Window Size, mediante la ventana de recepción. El emisor utiliza esa información para limitar la cantidad de datos pendientes de confirmación y evitar que el receptor reciba más de lo que puede almacenar. Este es un mecanismo de TCP utilizados para evitar que el receptor descarte paquetes por un desbordamiento de búfer (buffer overflow). UDP no posee una ventana de recepción equivalente \cite{rfc768,rfc9293}. 
+
+\subsubsection{Datagram Length and Fragmentation}
+La longitud indicada en el encabezado UDP incluye sus 8 bytes de encabezado y los datos transportados \cite{rfc768}. UDP no posee una ventana de recepción equivalente a la de TCP. Si un paquete IP supera la unidad de transmisión máxima (MTU) del trayecto, este puede requerir fragmentación. La pérdida de uno de los fragmentos impide reconstruir el datagrama completo  \cite{rfc8900}.
+
+\subsubsection{Checksum}
+El checksum es un campo que permite detectar determinadas inconsistencias en un datagrama recibido. El emisor aplica un algoritmo matemático para obtener un valor que se coloca en el encabezado, y el receptor puede volver a calcular el valor para comprobar si coincide \cite{rfc768,kurose2021}. En herramientas de captura como Wireshark, una etiqueta \textit{unverified} indica que Wireshark no verificó el checksum. El \textit{checksum offloading} es una posible explicación, pero la etiqueta no demuestra por sí sola que se haya utilizado ni que el paquete esté corrupto\cite{wireshark_guide}.
+
+\subsubsection{TTL}
+Time to Live (TTL) es un valor en el encabezado del IPv4 que indica el número máximo de saltos que un paquete puede realizar en la red. Por cada salto a través de un router, el valor disminuye en uno; si llega a cero, el router descarta el paquete para evitar que la información circule de forma infinita \cite{kurose2021}.
+
+\subsubsection{ICMP}
+Internet Control Message Protocol (ICMP) comunica determinadas condiciones y errores de la capa de red \cite{kurose2021,rfc792}. Cuando un datagrama UDP se envía a un puerto cerrado el receptor puede responder con un mensaje ICMPv4 \textit{Destination Unreachable} con tipo 3 y código 3 indica \textit{Port Unreachable}. El mensaje incluye el encabezado IP original y al menos los primeros bytes de sus datos, lo que permite relacionar el error con el datagrama que provocó el fallo \cite{rfc792}.
+
+\subsubsection{Unicast, Loopback and Broadcast}
+En una transmisión \textit{unicast}, el paquete se dirige a un destinatario específico. La dirección \texttt{127.0.0.1} permite probar la comunicación loopback dentro del mismo equipo \cite{kurose2021}. En cambio, una dirección IPv4 de broadcast permite dirigir un paquete a los equipos de una red local que admite difusión. En Ethernet, la dirección MAC de broadcast es \texttt{ff:ff:ff:ff:ff:ff} \cite{rfc919,kurose2021}. UDP permite enviar un datagrama a una dirección de broadcast; TCP establece conexiones entre extremos específicos y no ofrece ese tipo de transmisión \cite{rfc768,rfc9293}.
+
+\subsubsection{DHCP}
+Dynamic Host Configuration Protocol (DHCP) permite que un equipo obtenga una dirección IP y otros parámetros de configuración. Durante el descubrimiento inicial, el cliente puede enviar un mensaje UDP por broadcast porque todavía no conoce la dirección del servidor DHCP \cite{rfc2131}.
+
+\subsubsection{UDP Flood Attack}
+Un ataque UDP flood consiste en enviar un gran volumen de datagramas UDP hacia un destino con el propósito de sobrecargar la red o los recursos de procesamiento del receptor \cite{gelenbe2023flood}. 
+
+\subsubsection{DoS and DDoS}
+Un ataque de denegación de servicio (DoS) busca impedir que un servicio atienda normalmente a sus usuarios al sobrecargar sus recursos. Cuando el tráfico proviene de múltiples equipos, se denomina ataque distribuido de denegación de servicio (DDoS) \cite{kurose2021}.
+
+\subsubsection{Netcat}
+Netcat es una herramienta de línea de comandos que permite enviar y recibir datos mediante protocolos como TCP y UDP. La variante Ncat incluye modos de escucha y envío; al seleccionar UDP, puede enviar datos sin establecer previamente una conexión TCP \cite{ncat_guide,rfc768}.
+
+\subsubsection{Wireshark}
+Herramienta de código abierto empleada para capturar y analizar el tráfico que circula por una interfaz de red \cite{wireshark_guide}. Permite inspeccionar detalladamente la estructura de los paquetes UDP y TCP, verificar puertos, examinar direcciones MAC e IP, e identificar mensajes de error o secuencias de carga.
+
+
+% An example of a floating figure using the graphicx package.
+% Note that \label must occur AFTER (or within) \caption.
+% For figures, \caption should occur after the \includegraphics.
+% Note that IEEEtran v1.7 and later has special internal code that
+% is designed to preserve the operation of \label within \caption
+% even when the captionsoff option is in effect. However, because
+% of issues like this, it may be the safest practice to put all your
+% \label just after \caption rather than within \caption{}.
+%
+% Reminder: the "draftcls" or "draftclsnofoot", not "draft", class
+% option should be used if it is desired that the figures are to be
+% displayed while in draft mode.
+%
+%\begin{figure}[!t]
+%\centering
+%\includegraphics[width=2.5in]{myfigure}
+% where an .eps filename suffix will be assumed under latex, 
+% and a .pdf suffix will be assumed for pdflatex; or what has been declared
+% via \DeclareGraphicsExtensions.
+%\caption{Simulation results for the network.}
+%\label{fig_sim}
+%\end{figure}
+
+% Note that the IEEE typically puts floats only at the top, even when this
+% results in a large percentage of a column being occupied by floats.
+
+% An example of a double column floating figure using two subfigures.
+% (The subfig.sty package must be loaded for this to work.)
+% The subfigure \label commands are set within each subfloat command,
+% and the \label for the overall figure must come after \caption.
+% \hfil is used as a separator to get equal spacing.
+% Watch out that the combined width of all the subfigures on a 
+% line do not exceed the text width or a line break will occur.
+%
+%\begin{figure*}[!t]
+%\centering
+%\subfloat[Case I]{\includegraphics[width=2.5in]{box}%
+%\label{fig_first_case}}
+%\hfil
+%\subfloat[Case II]{\includegraphics[width=2.5in]{box}%
+%\label{fig_second_case}}
+%\caption{Simulation results for the network.}
+%\label{fig_sim}
+%\end{figure*}
+%
+% Note that often IEEE papers with subfigures do not employ subfigure
+% captions (using the optional argument to \subfloat[]), but instead will
+% reference/describe all of them (a), (b), etc., within the main caption.
+% Be aware that for subfig.sty to generate the (a), (b), etc., subfigure
+% labels, the optional argument to \subfloat must be present. If a
+% subcaption is not desired, just leave its contents blank,
+% e.g., \subfloat[].
+
+% An example of a floating table. Note that, for IEEE style tables, the
+% \caption command should come BEFORE the table and, given that table
+% captions serve much like titles, are usually capitalized except for words
+% such as a, an, and, as, at, but, by, for, in, nor, of, on, or, the, to
+% and up, which are usually not capitalized unless they are the first or
+% last word of the caption. Table text will default to \footnotesize as
+% the IEEE normally uses this smaller font for tables.
+% The \label must come after \caption as always.
+%
+%\begin{table}[!t]
+%% increase table row spacing, adjust to taste
+%\renewcommand{\arraystretch}{1.3}
+% if using array.sty, it might be a good idea to tweak the value of
+% \extrarowheight as needed to properly center the text within the cells
+%\caption{An Example of a Table}
+%\label{table_example}
+%\centering
+%% Some packages, such as MDW tools, offer better commands for making tables
+%% than the plain LaTeX2e tabular which is used here.
+%\begin{tabular}{|c||c|}
+%\hline
+%One & Two\\
+%\hline
+%Three & Four\\
+%\hline
+%\end{tabular}
+%\end{table}
+
+% Note that the IEEE does not put floats in the very first column
+% - or typically anywhere on the first page for that matter. Also,
+% in-text middle ("here") positioning is typically not used, but it
+% is allowed and encouraged for Computer Society conferences (but
+% not Computer Society journals). Most IEEE journals/conferences use
+% top floats exclusively. 
+% Note that, LaTeX2e, unlike IEEE journals/conferences, places
+% footnotes above bottom floats. This can be corrected via the
+% \fnbelowfloat command of the stfloats package.
+
+\subsection{State of the Art}
+El estudio de los protocolos de transporte ya no se limita a comparar UDP y TCP de forma aislada. Actualmente también se analiza cómo las aplicaciones utilizan estos protocolos y qué ocurre cuando cambian las condiciones de la red, aumenta el tamaño de los mensajes o se concentra mucho tráfico en un receptor. Estos temas aparecen tanto en servicios cotidianos, como DNS y la navegación web, como en investigaciones sobre la confiabilidad y la seguridad de las comunicaciones.
+
+En el caso de la web, Trevisan et al. \cite{trevisan2021http3} estudiaron la adopción y el rendimiento de HTTP/3, que utiliza QUIC sobre UDP. Encontraron mejoras principalmente en redes con alta latencia o poco ancho de banda. Sin embargo, QUIC incorpora sus propios mecanismos de confiabilidad y control, por lo que este resultado no puede atribuirse únicamente al uso de UDP. El trabajo muestra que la elección del protocolo de transporte debe evaluars junto con las funciones que implementa la aplicación y las condiciones en las que se comunica.
+
+La relación entre el tamaño de los mensajes y el transporte también se ha estudiado en DNS. Kosek et al. \cite{kosek2022dns} compararon consultas DNS sobre UDP y TCP realizadas desde distintos puntos de la red. Observaron que TCP generalmente tenía un mayor tiempo de respuesta, pero podía ser necesario para obtener respuestas que resultaban demasiado grandes para el intercambio previsto mediante UDP. En la misma línea, Bonica et al. \cite{rfc8900} explican que la fragmentación IP puede hacer menos confiable la entrega de paquetes grandes, ya que la pérdida de un fragmento impide reconstruir el paquete completo. Por ello, el tamaño de un mensaje no solo influye en cómo se envía, sino también en la posibilidad de recibirlo correctamente.
+
+Además del tamaño, la cantidad de datagramas enviados en poco tiempo puede afectar al receptor. Gelenbe y Nasereddin \cite{gelenbe2023flood} estudiaron la congestión producida durante un ataque UDP flood contra un servidor y evaluaron un mecanismo para regular el tráfico entrante. Sus resultados muestran que el problema no es solo el ancho de banda disponible, el servidor también necesita recursos para recibir, procesar y distinguir los paquetes legítimos de los que forman parte del ataque.
